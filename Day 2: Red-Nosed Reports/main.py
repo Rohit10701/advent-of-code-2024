@@ -1,49 +1,49 @@
-from sortedcontainers import SortedList
-from collections import Counter
+def parse_rules(rules_text):
+    rules = {}
+    for rule in rules_text.split('\n'):
+        before, after = map(int, rule.split('|'))
+        rules.setdefault(before, set()).add(after)
+    return rules
 
-f = open("./input.txt", "r")
-
-records = []
-safe_records_count = 0
-for x in f:
-    records.append(list(map(int, x.split())))
-
-def evaluate_records(record):
-    # incresing
-    flag = False
-    inc_flag = True
-    last_rec = record[0]-2
-    for r in record:
-        if last_rec > r  or 1 > abs(last_rec - r) or abs(last_rec - r) > 3:
-            inc_flag = False
-            break
-        last_rec = r
-
-    # descresing
-    dec_flag = True
-    last_rec = record[0]+2
-    for i, r in enumerate(record):
-        if last_rec < r  or 1 > abs(last_rec - r) or abs(last_rec - r) > 3:
-            dec_flag = False
-            break
-        last_rec = r
-    return 1 if (dec_flag or inc_flag) else 0
-
-# 1 3 2 3 5 
-"""
-if 1 remove 2 then it ll blow up gotta remove first 3
-"""
-
-for record in records:
-    safe_records_count += evaluate_records(record)
-tmp = safe_records_count
-print("Q1", safe_records_count)
-# Q2
-
-for record in records:
-    for i in range(len(record)):
-        if evaluate_records(record[:i]+record[i+1:]):
-            safe_records_count += 1
-            break
+def is_order_valid(update, rules):
+    # Convert update to a list if it isn't already
+    update = list(update)
     
-print("Q2", safe_records_count - tmp)
+    # Check each rule that involves pages in this update
+    for i, page in enumerate(update):
+        for j, next_page in enumerate(update[i+1:], start=i+1):
+            # If there's a rule saying 'page' must come before 'next_page'
+            if page in rules and next_page in rules[page]:
+                # If 'page' appears after 'next_page', order is invalid
+                if update.index(page) > update.index(next_page):
+                    return False
+    return True
+
+def solve_page_order(input_text):
+    # Split input into rules and updates
+    rules_text, updates_text = input_text.strip().split('\n\n')
+    
+    # Parse rules
+    rules = parse_rules(rules_text)
+    
+    # Process updates
+    updates = [list(map(int, update.split(','))) for update in updates_text.split('\n')]
+    
+    # Find valid updates and their middle pages
+    valid_middle_pages = []
+    
+    for update in updates:
+        if is_order_valid(update, rules):
+            # Find middle page of the correctly ordered update
+            middle_index = len(update) // 2
+            valid_middle_pages.append(update[middle_index])
+    
+    # Return sum of middle pages
+    return sum(valid_middle_pages)
+
+# Read input from file
+with open('input.txt', 'r') as file:
+    input_text = file.read()
+
+result = solve_page_order(input_text)
+print(result)
